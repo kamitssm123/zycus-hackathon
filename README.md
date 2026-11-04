@@ -34,6 +34,19 @@ curl localhost:8080/api/slots                                        # old OPEN,
 
 > If another project on your machine is using port 5173, set `WEB_DEV_PORT` in `.env`.
 
+### Running the demo more than once
+
+The agent resolves **CONFIRMED** appointments, so after one run they sit in
+`RESCHEDULE_PENDING` and taking the provider offline again legitimately affects **0 appointments** —
+the log says so explicitly. That is correct behaviour, not a failure, but it makes a second run
+look like nothing happened. To go again, either:
+
+- **Reject** a suggestion — the appointment returns to `CONFIRMED` and the next trigger picks it up, or
+- `make reset && make up` for a clean slate.
+
+Switching the engine between `rule` and `ai` only changes *future* suggestions; existing ones keep
+the strategy that produced them. To compare the two, reject first, then re-trigger.
+
 ## Endpoints
 
 | | |

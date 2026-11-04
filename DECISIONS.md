@@ -249,3 +249,34 @@ a patient, agreed a time, and hit a 409. Correct data, bad product.
 
 **Cost.** One extra query per suggestion. A slot held by an un-actioned suggestion is unavailable to
 others until that suggestion is rejected; with a rejection flow in place, that is the right default.
+
+---
+
+### D-17 — An offline provider's slots keep their own status
+
+**Decision.** Marking a provider OFFLINE does not rewrite their slots. BOOKED slots stay BOOKED;
+OPEN slots stay OPEN in the database and are shown in the UI as "provider offline".
+
+**Why.** Two separate questions were being conflated.
+
+*Why not free the BOOKED slots immediately?* Because the patient still holds that time until they
+agree to move. Releasing it at trigger time would let someone else book it while the original
+patient is still being called, and would leave the appointment pointing at an OPEN slot. The slot is
+freed at the moment of acceptance, inside the same transaction that books the new one.
+
+*Why not mark the OPEN slots CANCELLED?* Because they are not cancelled — the doctor is away.
+CANCELLED means a slot was deliberately killed and must never be resurrected (the accept path
+depends on exactly that distinction). Encoding provider availability into slot status is
+denormalisation that would then have to be reversed when the provider comes back online.
+
+Availability is therefore **derived**: `slot.status == OPEN && provider.status == OFFLINE` means not
+bookable. The engine already excludes those slots from candidates, and `POST /api/appointments`
+refuses them with 409 "Provider is offline".
+
+**The bug this did surface.** The UI was still rendering them as "open", which is the interface
+promising something the API would refuse. Fixed in `SlotList`, with a test asserting the slot is not
+advertised as bookable when its provider is offline.
+
+**Cost.** Availability is computed in two places (engine and UI) rather than stored once. Acceptable
+while the rule is one line; if a third consumer appears it should move to a derived field on the
+slot response.
