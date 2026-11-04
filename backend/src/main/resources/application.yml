@@ -42,6 +42,15 @@ app:
     max-suggestions: ${SCHEDULING_MAX_SUGGESTIONS:3}
     max-fan-out: ${SCHEDULING_MAX_FAN_OUT:10}
 
+  llm:
+    enabled: ${LLM_ENABLED:true}          # false -> deterministic stub, for offline demos
+    base-url: ${LLM_BASE_URL:https://litellm-qc.zycus.net/v1}
+    api-key: ${LLM_API_KEY:}
+    model: ${LLM_MODEL:gpt-5.6-luna-azure-payg-global}
+    product-header: ${LLM_PRODUCT_HEADER:PC1}
+    timeout-ms: ${LLM_TIMEOUT_MS:8000}
+    temperature: ${LLM_TEMPERATURE:0.2}
+
 management:
   endpoints:
     web:

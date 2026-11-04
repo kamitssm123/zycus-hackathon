@@ -19,3 +19,7 @@ spring:
 logging:
   level:
     com.slotmind: DEBUG
+
+app:
+  llm:
+    enabled: false   # the suite must never hit the real gateway; AI paths use injected fakes
