@@ -20,6 +20,13 @@ export default function SuggestionQueue() {
   const suggestAlternative = useSuggestAlternative();
   const [exhausted, setExhausted] = useState<string | null>(null);
 
+  // Per-card, not per-mutation. A single `isPending` flag is shared by every card, so acting on
+  // one suggestion would disable the controls on all of them — which reads as the UI freezing,
+  // and blocks a coordinator who is working through several patients.
+  const [pendingIds, setPendingIds] = useState<string[]>([]);
+  const startWork = (id: string) => setPendingIds((ids) => [...ids, id]);
+  const finishWork = (id: string) => setPendingIds((ids) => ids.filter((x) => x !== id));
+
   const appointmentById = new Map((appointments ?? []).map((a) => [a.id, a]));
   const slotById = new Map((slots ?? []).map((s) => [s.id, s]));
   const providerById = new Map((providers ?? []).map((p) => [p.id, p]));
@@ -64,12 +71,17 @@ export default function SuggestionQueue() {
               appointment={appointment}
               slot={slot}
               provider={providerById.get(suggestion.alternateProviderId ?? slot?.providerId ?? '')}
-              busy={decide.isPending || suggestAlternative.isPending}
+              busy={pendingIds.includes(suggestion.id)}
               onDecide={(status) => {
                 setExhausted(null);
-                decide.mutate({ id: suggestion.id, status });
+                startWork(suggestion.id);
+                decide.mutate(
+                  { id: suggestion.id, status },
+                  { onSettled: () => finishWork(suggestion.id) },
+                );
               }}
-              onSuggestAlternative={() =>
+              onSuggestAlternative={() => {
+                startWork(suggestion.id);
                 suggestAlternative.mutate(suggestion.id, {
                   onSuccess: (result) =>
                     setExhausted(
@@ -77,8 +89,9 @@ export default function SuggestionQueue() {
                         ? null
                         : (appointment?.patientName ?? suggestion.appointmentId),
                     ),
-                })
-              }
+                  onSettled: () => finishWork(suggestion.id),
+                });
+              }}
             />
           );
         })}

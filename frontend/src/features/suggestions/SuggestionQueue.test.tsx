@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -17,6 +17,32 @@ const SUGGESTION = {
   strategyKey: 'ai',
   fallbackUsed: false,
   createdAt: '2026-11-04T11:00:00Z',
+};
+
+const SUGGESTION_2 = {
+  ...{
+    id: 'SGT-002',
+    appointmentId: 'APT-002',
+    recommendedSlotId: 'SLT-007',
+    alternateProviderId: 'PRV-004',
+    confidence: 0.75,
+    reasoning: 'Dr. Chen is unavailable, so we suggest Dr. Verma at 2:30 PM.',
+    status: 'PENDING',
+    triggerReason: 'PROVIDER_OFFLINE',
+    strategyKey: 'ai',
+    fallbackUsed: false,
+    createdAt: '2026-11-04T11:00:00Z',
+  },
+};
+
+const APPOINTMENT_2 = {
+  id: 'APT-002',
+  patientName: 'Emily Watson',
+  type: 'FOLLOW_UP',
+  providerId: 'PRV-001',
+  slotId: 'SLT-002',
+  status: 'RESCHEDULE_PENDING',
+  updatedAt: '2026-11-04T11:00:00Z',
 };
 
 const APPOINTMENT = {
@@ -181,6 +207,61 @@ describe('SuggestionQueue', () => {
 
     expect(await screen.findByText(/No other suitable slot is available/)).toBeInTheDocument();
     expect(screen.getByText(/keep their original appointment/)).toBeInTheDocument();
+  });
+
+  it('only disables the card being acted on, not every card', async () => {
+    // Regression: `busy` was a single shared mutation flag, so clicking "Suggest another" on one
+    // patient disabled Accept/Reject on every other patient — which reads as the UI freezing and
+    // blocks a coordinator working through a list.
+    let resolveAlternative: (v: unknown) => void = () => {};
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string, init?: RequestInit) => {
+        if (init?.method === 'POST' && String(url).includes('/alternative')) {
+          // Hold the request open so the pending state is observable.
+          return new Promise((resolve) => {
+            resolveAlternative = resolve;
+          });
+        }
+        const body = String(url).startsWith('/api/suggestions')
+          ? [SUGGESTION, SUGGESTION_2]
+          : String(url).startsWith('/api/appointments')
+            ? [APPOINTMENT, APPOINTMENT_2]
+            : String(url).startsWith('/api/slots')
+              ? [SLOT]
+              : [PROVIDER];
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          text: () => Promise.resolve(JSON.stringify(body)),
+        });
+      }),
+    );
+
+    render(<SuggestionQueue />, { wrapper });
+    await screen.findByText('John Martinez');
+    await screen.findByText('Emily Watson');
+
+    const cards = screen.getAllByRole('article');
+    const johnCard = cards.find((c) => c.textContent?.includes('John Martinez'))!;
+    const emilyCard = cards.find((c) => c.textContent?.includes('Emily Watson'))!;
+
+    await userEvent.click(within(johnCard).getByRole('button', { name: 'Suggest another' }));
+
+    // John's card is working...
+    await waitFor(() =>
+      expect(within(johnCard).getByRole('button', { name: 'Accept' })).toBeDisabled(),
+    );
+    // ...Emily's is still fully usable.
+    expect(within(emilyCard).getByRole('button', { name: 'Accept' })).toBeEnabled();
+    expect(within(emilyCard).getByRole('button', { name: 'Suggest another' })).toBeEnabled();
+    expect(within(emilyCard).getByRole('button', { name: 'Reject' })).toBeEnabled();
+
+    resolveAlternative({
+      ok: true,
+      status: 200,
+      text: () => Promise.resolve(JSON.stringify({ rejected: {}, alternative: SUGGESTION_2 })),
+    });
   });
 
   it('tells the coordinator what to do when the queue is empty', async () => {
