@@ -1,5 +1,6 @@
 package com.slotmind.scheduling.service;
 
+import com.slotmind.agent.RescheduleTriggered;
 import com.slotmind.common.exception.NotFoundException;
 import com.slotmind.scheduling.api.ProviderResponse;
 import com.slotmind.scheduling.domain.Provider;
@@ -38,8 +39,9 @@ public class ProviderService {
     log.info("provider {} status {} -> {}", id, previous, status);
 
     if (status == ProviderStatus.OFFLINE && previous != ProviderStatus.OFFLINE) {
-      // TODO(phase-5): events.publishEvent(new RescheduleTriggeredEvent(...PROVIDER_OFFLINE));
-      log.info("provider {} went offline — reschedule loop will fire here", id);
+      // Publish a fact and return. This service does not know rescheduling exists; the agent
+      // listens AFTER_COMMIT, so the request is not held open while suggestions are built.
+      events.publishEvent(RescheduleTriggered.providerOffline(id));
     }
     return ProviderResponse.from(provider);
   }

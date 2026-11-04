@@ -21,6 +21,18 @@ public interface SuggestionRepository extends JpaRepository<RescheduleSuggestion
   long countByStatus(SuggestionStatus status);
 
   /**
+   * Slots already promised to someone by an outstanding suggestion. The engine excludes these so a
+   * fan-out does not offer the same slot to two patients — the accept transaction would let only
+   * one through, and the other coordinator would make a phone call that ends in a 409.
+   */
+  @Query(
+      """
+      select s.recommendedSlotId from RescheduleSuggestion s
+       where s.status = com.slotmind.scheduling.domain.SuggestionStatus.PENDING
+      """)
+  List<String> findSlotIdsWithPendingSuggestions();
+
+  /**
    * Accepting one suggestion invalidates the others for that appointment.
    *
    * <p>{@code flushAutomatically} matters: without it this bulk update can run before pending

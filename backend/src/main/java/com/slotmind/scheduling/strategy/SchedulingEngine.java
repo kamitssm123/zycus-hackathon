@@ -32,6 +32,7 @@ public class SchedulingEngine {
   private final SchedulingProperties properties;
   private final SlotRepository slots;
   private final ProviderRepository providers;
+  private final SuggestionRepository suggestions;
 
   @Transactional(readOnly = true)
   public EngineResult recommend(Appointment appointment, TriggerReason reason, String override) {
@@ -120,6 +121,10 @@ public class SchedulingEngine {
             .map(Provider::getId)
             .collect(Collectors.toSet());
 
+    // Slots another patient has already been offered. Excluding them turns a fan-out into
+    // distinct recommendations instead of N patients competing for one slot.
+    Set<String> alreadyOffered = Set.copyOf(suggestions.findSlotIdsWithPendingSuggestions());
+
     List<SchedulingContext.SlotView> candidates =
         slots
             .findByStatusAndStartTimeBetweenOrderByStartTimeAsc(
@@ -129,6 +134,7 @@ public class SchedulingEngine {
             // literally one of the trigger reasons.
             .filter(s -> !offline.contains(s.getProviderId()))
             .filter(s -> !s.getId().equals(appointment.getSlotId()))
+            .filter(s -> !alreadyOffered.contains(s.getId()))
             .map(SchedulingContext.SlotView::of)
             .toList();
 

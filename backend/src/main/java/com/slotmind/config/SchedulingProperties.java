@@ -31,4 +31,10 @@ public class SchedulingProperties {
 
   /** How many recommendations survive into the response. */
   private int maxSuggestions = 3;
+
+  /**
+   * Caps how many appointments one trigger fans out to. A provider with a full day of appointments
+   * and a ~2s LLM call each would look like a 40-second hang during the demo.
+   */
+  private int maxFanOut = 10;
 }

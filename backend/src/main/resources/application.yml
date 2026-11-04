@@ -40,6 +40,7 @@ app:
     horizon-days: ${SCHEDULING_HORIZON_DAYS:14}
     max-candidates: ${SCHEDULING_MAX_CANDIDATES:50}
     max-suggestions: ${SCHEDULING_MAX_SUGGESTIONS:3}
+    max-fan-out: ${SCHEDULING_MAX_FAN_OUT:10}
 
 management:
   endpoints:

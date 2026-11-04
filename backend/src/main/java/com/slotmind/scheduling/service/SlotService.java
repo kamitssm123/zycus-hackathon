@@ -1,5 +1,6 @@
 package com.slotmind.scheduling.service;
 
+import com.slotmind.agent.RescheduleTriggered;
 import com.slotmind.common.exception.NotFoundException;
 import com.slotmind.scheduling.api.SlotResponse;
 import com.slotmind.scheduling.domain.*;
@@ -40,8 +41,7 @@ public class SlotService {
     log.info("slot {} status {} -> {}", id, previous, status);
 
     if (status == SlotStatus.CANCELLED && previous != SlotStatus.CANCELLED) {
-      // TODO(phase-5): events.publishEvent(new RescheduleTriggeredEvent(...SLOT_CANCELLED));
-      log.info("slot {} cancelled — reschedule loop will fire here", id);
+      events.publishEvent(RescheduleTriggered.slotCancelled(id));
     }
     return SlotResponse.from(slot);
   }
