@@ -11,11 +11,11 @@
     <relativePath/>
   </parent>
 
-  <groupId>com.zycus</groupId>
-  <artifactId>hackathon-api</artifactId>
+  <groupId>com.slotmind</groupId>
+  <artifactId>slotmind-api</artifactId>
   <version>0.1.0</version>
-  <name>hackathon-api</name>
-  <description>Hackathon starter API (Spring Boot)</description>
+  <name>slotmind-api</name>
+  <description>SlotMind — appointment re-scheduling engine</description>
 
   <properties>
     <java.version>21</java.version>
