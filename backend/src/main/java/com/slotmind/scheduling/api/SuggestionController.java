@@ -33,6 +33,15 @@ public class SuggestionController {
   }
 
   /**
+   * "That one doesn't suit — what else?" One click: reject, then propose a different slot. Returns
+   * the rejection plus the alternative, or a null alternative when nothing suitable is left.
+   */
+  @PostMapping("/api/suggestions/{id}/alternative")
+  public AlternativeSuggestionResponse alternative(@PathVariable String id) {
+    return decisions.rejectAndSuggestAlternative(id);
+  }
+
+  /**
    * On-demand suggestion. Same service method the agentic loop calls; {@code strategy} allows a
    * per-request override without touching global config.
    */

@@ -1,5 +1,6 @@
 import { api } from './client';
 import type {
+  AlternativeSuggestion,
   Appointment,
   Provider,
   ProviderStatus,
@@ -36,6 +37,9 @@ export const suggestionsApi = {
     api<RescheduleSuggestion[]>(`/api/suggestions${status ? `?status=${status}` : ''}`),
   decide: (id: string, status: 'ACCEPTED' | 'REJECTED') =>
     api<SuggestionDecision>(`/api/suggestions/${id}`, { method: 'PATCH', body: { status } }),
+  /** Reject and ask for a different slot in one motion. */
+  alternative: (id: string) =>
+    api<AlternativeSuggestion>(`/api/suggestions/${id}/alternative`, { method: 'POST' }),
 };
 
 export const engineApi = {

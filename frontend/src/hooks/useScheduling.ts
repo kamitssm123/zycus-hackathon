@@ -78,6 +78,18 @@ export function useDecideSuggestion() {
   });
 }
 
+/**
+ * "That one doesn't suit — what else?" Rejects and proposes a different slot in one call, so the
+ * coordinator's single real-world action is a single click rather than reject-then-hunt.
+ */
+export function useSuggestAlternative() {
+  const refresh = useRefreshAll();
+  return useMutation({
+    mutationFn: (id: string) => suggestionsApi.alternative(id),
+    onSettled: refresh,
+  });
+}
+
 export function useSetProviderStatus() {
   const refresh = useRefreshAll();
   return useMutation({

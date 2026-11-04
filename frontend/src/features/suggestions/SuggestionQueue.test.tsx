@@ -141,6 +141,48 @@ describe('SuggestionQueue', () => {
     expect(await screen.findByText(/AI unavailable/)).toBeInTheDocument();
   });
 
+  it('suggest another posts to the alternative endpoint', async () => {
+    const spy = mockApi({
+      'POST /api/suggestions/SGT-001/alternative': {
+        status: 200,
+        body: {
+          rejected: { suggestionId: 'SGT-001', suggestionStatus: 'REJECTED' },
+          alternative: { ...SUGGESTION, id: 'SGT-002', recommendedSlotId: 'SLT-007' },
+        },
+      },
+    });
+    render(<SuggestionQueue />, { wrapper });
+    await screen.findByText('John Martinez');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Suggest another' }));
+
+    await waitFor(() => {
+      expect(
+        spy.mock.calls.find(
+          ([url, init]) =>
+            init?.method === 'POST' && String(url) === '/api/suggestions/SGT-001/alternative',
+        ),
+      ).toBeDefined();
+    });
+  });
+
+  it('says so plainly when there is nothing else to offer', async () => {
+    mockApi({
+      'POST /api/suggestions/SGT-001/alternative': {
+        status: 200,
+        // The rejection succeeded; there is simply no alternative. Not an error.
+        body: { rejected: { suggestionId: 'SGT-001', suggestionStatus: 'REJECTED' } },
+      },
+    });
+    render(<SuggestionQueue />, { wrapper });
+    await screen.findByText('John Martinez');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Suggest another' }));
+
+    expect(await screen.findByText(/No other suitable slot is available/)).toBeInTheDocument();
+    expect(screen.getByText(/keep their original appointment/)).toBeInTheDocument();
+  });
+
   it('tells the coordinator what to do when the queue is empty', async () => {
     mockApi({ 'GET /api/suggestions': { status: 200, body: [] } });
     render(<SuggestionQueue />, { wrapper });

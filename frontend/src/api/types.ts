@@ -67,6 +67,12 @@ export interface SuggestionDecision {
   siblingsRejected: number;
 }
 
+export interface AlternativeSuggestion {
+  rejected: SuggestionDecision;
+  /** Absent when nothing suitable is left to offer. */
+  alternative?: RescheduleSuggestion;
+}
+
 export interface SchedulingConfig {
   strategy: string;
   fallbackStrategy: string;

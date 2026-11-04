@@ -1,10 +1,12 @@
 import ErrorBanner from '../../components/ErrorBanner';
 import Spinner from '../../components/Spinner';
+import { useState } from 'react';
 import {
   useAppointments,
   useDecideSuggestion,
   useProviders,
   useSlots,
+  useSuggestAlternative,
   useSuggestions,
 } from '../../hooks/useScheduling';
 import SuggestionCard from './SuggestionCard';
@@ -15,6 +17,8 @@ export default function SuggestionQueue() {
   const { data: slots } = useSlots();
   const { data: providers } = useProviders();
   const decide = useDecideSuggestion();
+  const suggestAlternative = useSuggestAlternative();
+  const [exhausted, setExhausted] = useState<string | null>(null);
 
   const appointmentById = new Map((appointments ?? []).map((a) => [a.id, a]));
   const slotById = new Map((slots ?? []).map((s) => [s.id, s]));
@@ -29,7 +33,17 @@ export default function SuggestionQueue() {
         </span>
       </div>
 
-      <ErrorBanner error={error ?? decide.error} />
+      <ErrorBanner error={error ?? decide.error ?? suggestAlternative.error} />
+
+      {exhausted && (
+        // The rejection succeeded; there was simply nothing else to offer. Saying so explicitly
+        // matters — otherwise the card vanishes and the coordinator cannot tell whether the
+        // system is still working on it or has given up.
+        <p className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          No other suitable slot is available for {exhausted}. They keep their original appointment
+          — try freeing a slot, or bring a provider back online.
+        </p>
+      )}
 
       {isLoading && <Spinner label="Loading suggestions…" />}
 
@@ -50,8 +64,21 @@ export default function SuggestionQueue() {
               appointment={appointment}
               slot={slot}
               provider={providerById.get(suggestion.alternateProviderId ?? slot?.providerId ?? '')}
-              busy={decide.isPending}
-              onDecide={(status) => decide.mutate({ id: suggestion.id, status })}
+              busy={decide.isPending || suggestAlternative.isPending}
+              onDecide={(status) => {
+                setExhausted(null);
+                decide.mutate({ id: suggestion.id, status });
+              }}
+              onSuggestAlternative={() =>
+                suggestAlternative.mutate(suggestion.id, {
+                  onSuccess: (result) =>
+                    setExhausted(
+                      result.alternative
+                        ? null
+                        : (appointment?.patientName ?? suggestion.appointmentId),
+                    ),
+                })
+              }
             />
           );
         })}

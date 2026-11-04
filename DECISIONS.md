@@ -280,3 +280,32 @@ advertised as bookable when its provider is offline.
 **Cost.** Availability is computed in two places (engine and UI) rather than stored once. Acceptable
 while the rule is one line; if a third consumer appears it should move to a derived field on the
 slot response.
+
+---
+
+### D-18 — "Suggest another option" is one call, two transactions
+
+**Decision.** `POST /api/suggestions/{id}/alternative` rejects a suggestion and proposes a different
+slot. The engine never re-offers a slot this appointment has already refused.
+
+**Why one endpoint.** It matches the real-world action — a patient says "not that time" and the
+coordinator needs the next idea immediately. Leaving it as reject-then-hunt made the UI do two
+things the user experiences as one, and forced the client to know the original trigger reason in
+order to ask the right question again.
+
+**Why two transactions, not one.** The rejection is a fast local write that must commit and stay
+committed. Generating the replacement may call an LLM over the network; holding row locks open
+across that would turn a slow gateway into a database problem.
+
+**Why the trigger reason is carried over.** Re-suggesting as INITIAL would ask the AI the wrong
+question ("a coordinator wants options" rather than "this patient's provider is gone") and make the
+UI badge lie about why the patient is being moved.
+
+**Cost.** A refused slot is excluded for that appointment permanently, with no way to un-refuse it
+short of a new suggestion cycle. Correct for a single sitting; a longer-lived system would want the
+exclusion to expire.
+
+**Honest edge case.** When nothing is left, the rejection still succeeds and the response carries a
+null alternative rather than an error — the rejection did not fail. The UI says so explicitly,
+because a card silently vanishing gives the coordinator no way to tell whether the system is still
+working on it.

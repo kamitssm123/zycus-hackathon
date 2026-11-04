@@ -39,6 +39,18 @@ public interface SuggestionRepository extends JpaRepository<RescheduleSuggestion
    * entity changes are flushed. {@code clearAutomatically} matters because a bulk update bypasses
    * the persistence context, leaving stale sibling entities loaded.
    */
+  /**
+   * Slots this appointment has already been offered and refused. Offering the same time twice is
+   * the fastest way to make an assistant feel broken to the person using it.
+   */
+  @Query(
+      """
+      select s.recommendedSlotId from RescheduleSuggestion s
+       where s.appointmentId = :appointmentId
+         and s.status = com.slotmind.scheduling.domain.SuggestionStatus.REJECTED
+      """)
+  List<String> findRejectedSlotIdsForAppointment(@Param("appointmentId") String appointmentId);
+
   @Modifying(clearAutomatically = true, flushAutomatically = true)
   @Query(
       """

@@ -58,6 +58,7 @@ the strategy that produced them. To compare the two, reject first, then re-trigg
 | `POST /api/appointments/{id}/suggest?strategy=` | on-demand suggestion |
 | `GET /api/suggestions?status=` | the front-desk queue |
 | `PATCH /api/suggestions/{id}` | accept / reject — the human checkpoint |
+| `POST /api/suggestions/{id}/alternative` | "that time doesn't suit" — reject and propose another, in one call |
 | `GET` `PATCH /api/admin/scheduling` | switch `rule` ⇄ `ai` at runtime, no restart |
 
 ## How it works

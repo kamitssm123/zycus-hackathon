@@ -7,6 +7,7 @@ interface Props {
   slot?: Slot;
   provider?: Provider;
   onDecide: (status: 'ACCEPTED' | 'REJECTED') => void;
+  onSuggestAlternative: () => void;
   busy: boolean;
 }
 
@@ -31,6 +32,7 @@ export default function SuggestionCard({
   slot,
   provider,
   onDecide,
+  onSuggestAlternative,
   busy,
 }: Props) {
   const confidencePct = Math.round(suggestion.confidence * 100);
@@ -99,9 +101,18 @@ export default function SuggestionCard({
           Accept
         </button>
         <button
+          onClick={onSuggestAlternative}
+          disabled={busy}
+          title="Reject this time and propose a different one"
+          className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+        >
+          Suggest another
+        </button>
+        <button
           onClick={() => onDecide('REJECTED')}
           disabled={busy}
-          className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          title="Reject without proposing an alternative — the patient keeps their original appointment"
+          className="rounded-md px-3 py-1.5 text-sm font-medium text-slate-500 hover:text-rose-600 disabled:opacity-50"
         >
           Reject
         </button>

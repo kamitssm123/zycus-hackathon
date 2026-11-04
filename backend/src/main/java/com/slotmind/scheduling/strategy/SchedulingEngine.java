@@ -125,6 +125,10 @@ public class SchedulingEngine {
     // distinct recommendations instead of N patients competing for one slot.
     Set<String> alreadyOffered = Set.copyOf(suggestions.findSlotIdsWithPendingSuggestions());
 
+    // ...and never re-offer a time this patient has already turned down.
+    Set<String> alreadyRefused =
+        Set.copyOf(suggestions.findRejectedSlotIdsForAppointment(appointment.getId()));
+
     List<SchedulingContext.SlotView> candidates =
         slots
             .findByStatusAndStartTimeBetweenOrderByStartTimeAsc(
@@ -135,6 +139,7 @@ public class SchedulingEngine {
             .filter(s -> !offline.contains(s.getProviderId()))
             .filter(s -> !s.getId().equals(appointment.getSlotId()))
             .filter(s -> !alreadyOffered.contains(s.getId()))
+            .filter(s -> !alreadyRefused.contains(s.getId()))
             .map(SchedulingContext.SlotView::of)
             .toList();
 
