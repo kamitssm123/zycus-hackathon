@@ -4,6 +4,8 @@ import com.slotmind.common.exception.ConflictException;
 import com.slotmind.scheduling.domain.SuggestionStatus;
 import com.slotmind.scheduling.domain.TriggerReason;
 import com.slotmind.scheduling.service.RescheduleService;
+import com.slotmind.scheduling.service.SuggestionDecisionService;
+import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -13,10 +15,21 @@ import org.springframework.web.bind.annotation.*;
 public class SuggestionController {
 
   private final RescheduleService service;
+  private final SuggestionDecisionService decisions;
 
   @GetMapping("/api/suggestions")
   public List<SuggestionResponse> list(@RequestParam(required = false) SuggestionStatus status) {
     return service.list(status);
+  }
+
+  /**
+   * The human checkpoint. Accepting moves the appointment and swaps both slots atomically; the
+   * system never books without this call.
+   */
+  @PatchMapping("/api/suggestions/{id}")
+  public SuggestionDecisionResponse decide(
+      @PathVariable String id, @Valid @RequestBody UpdateSuggestionRequest request) {
+    return decisions.decide(id, request.status());
   }
 
   /**
