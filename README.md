@@ -36,7 +36,7 @@ make prod     # production-shaped stack: nginx on :3000
 
 ```
 backend/     Spring Boot 3.3 · Java 21 · Postgres · Flyway · Redis
-  src/main/java/com/zycus/hackathon/
+  src/main/java/com/slotmind/
     common/    error contract, exception handler, request-id + logging filters
     config/    CORS, Jackson, JPA auditing, OpenAPI
     health/    GET /api/health
@@ -61,8 +61,8 @@ frontend/    React 18 · TypeScript · Vite · React Query · Tailwind v4
 
 ```
 backend/src/main/resources/db/migration/V2__thing.sql
-backend/src/main/java/com/zycus/hackathon/thing/{domain,service,api}/…
-backend/src/test/java/com/zycus/hackathon/thing/ThingApiTest.java   ← not optional
+backend/src/main/java/com/slotmind/thing/{domain,service,api}/…
+backend/src/test/java/com/slotmind/thing/ThingApiTest.java   ← not optional
 frontend/src/api/things.ts  →  hooks/useThings.ts  →  features/thing/ThingList.tsx
 ```
 

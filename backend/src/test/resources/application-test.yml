@@ -18,4 +18,4 @@ spring:
       port: 6379
 logging:
   level:
-    com.zycus.hackathon: DEBUG
+    com.slotmind: DEBUG

@@ -52,4 +52,4 @@ springdoc:
 logging:
   level:
     root: ${LOG_LEVEL_ROOT:INFO}
-    com.zycus.hackathon: ${LOG_LEVEL_APP:DEBUG}
+    com.slotmind: ${LOG_LEVEL_APP:DEBUG}

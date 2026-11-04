@@ -1,4 +1,4 @@
-/** Mirrors com.zycus.hackathon.common.dto.ApiError — keep both sides in sync. */
+/** Mirrors com.slotmind.common.dto.ApiError — keep both sides in sync. */
 export interface ApiErrorBody {
   code: string;
   message: string;

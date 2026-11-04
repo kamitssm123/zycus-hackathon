@@ -53,7 +53,7 @@ debugging affordance in a 3-hour build.
 ## 3. Backend layering
 
 ```
-com.zycus.hackathon
+com.slotmind
 ├── Application.java
 ├── config/           CorsConfig, JacksonConfig, JpaConfig, OpenApiConfig   (beans only)
 ├── common/

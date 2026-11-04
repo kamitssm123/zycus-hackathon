@@ -36,7 +36,7 @@ Optimise for: **working demo, honest code, fast recovery from mistakes.** In tha
 
 ## 3. Layering
 
-### Backend — `com.zycus.hackathon`
+### Backend — `com.slotmind`
 
 ```
 <feature>/api/      Controller + request/response records. Thin: validate, delegate, map status.
