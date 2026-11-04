@@ -8,25 +8,67 @@ export interface ApiErrorBody {
   timestamp?: string;
 }
 
-export interface PageResponse<T> {
-  items: T[];
-  page: number;
-  size: number;
-  total: number;
-  hasNext: boolean;
-}
+export type Specialty = 'GENERAL' | 'SPECIALIST' | 'PEDIATRIC';
+export type ProviderStatus = 'AVAILABLE' | 'BUSY' | 'OFFLINE';
+export type SlotStatus = 'OPEN' | 'BOOKED' | 'CANCELLED';
+export type AppointmentType = 'ROUTINE' | 'URGENT' | 'FOLLOW_UP';
+export type AppointmentStatus = 'CONFIRMED' | 'RESCHEDULE_PENDING' | 'RESCHEDULED' | 'COMPLETED';
+export type SuggestionStatus = 'PENDING' | 'ACCEPTED' | 'REJECTED';
+export type TriggerReason = 'INITIAL' | 'PROVIDER_OFFLINE' | 'SLOT_CANCELLED';
 
-export interface Item {
+export interface Provider {
   id: string;
   name: string;
-  description?: string;
-  done: boolean;
-  createdAt: string;
+  specialty: Specialty;
+  status: ProviderStatus;
+}
+
+export interface Slot {
+  id: string;
+  providerId: string;
+  startTime: string;
+  durationMinutes: number;
+  status: SlotStatus;
+}
+
+export interface Appointment {
+  id: string;
+  patientName: string;
+  type: AppointmentType;
+  providerId: string;
+  slotId: string;
+  status: AppointmentStatus;
   updatedAt: string;
 }
 
-export interface ItemPayload {
-  name: string;
-  description?: string;
-  done?: boolean;
+export interface RescheduleSuggestion {
+  id: string;
+  appointmentId: string;
+  recommendedSlotId: string;
+  alternateProviderId?: string;
+  confidence: number;
+  reasoning: string;
+  status: SuggestionStatus;
+  triggerReason: TriggerReason;
+  strategyKey: string;
+  fallbackUsed: boolean;
+  fallbackReason?: string;
+  createdAt: string;
+}
+
+export interface SuggestionDecision {
+  suggestionId: string;
+  suggestionStatus: SuggestionStatus;
+  appointmentId: string;
+  appointmentStatus: AppointmentStatus;
+  slotId: string;
+  providerId: string;
+  releasedSlotId?: string;
+  siblingsRejected: number;
+}
+
+export interface SchedulingConfig {
+  strategy: string;
+  fallbackStrategy: string;
+  availableStrategies: string[];
 }
