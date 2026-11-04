@@ -1,0 +1,27 @@
+# Applied automatically by `docker compose up`. Dev-only: bind mounts + hot reload.
+# Deleting this file gives you the production stack; that is the only difference.
+services:
+  api:
+    build:
+      target: dev
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/pom.xml:/app/pom.xml
+      - maven-cache:/root/.m2
+    environment:
+      LOG_LEVEL_APP: DEBUG
+
+  web:
+    build:
+      target: dev
+    command: npm run dev
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      VITE_PROXY_TARGET: http://api:8080
+    ports:
+      - '${WEB_DEV_PORT:-5173}:5173'
+
+volumes:
+  maven-cache:

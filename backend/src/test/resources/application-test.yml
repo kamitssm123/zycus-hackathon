@@ -1,0 +1,21 @@
+# Tests run on in-memory H2 in Postgres mode: no Docker needed, suite stays under a few seconds.
+# Trade-off accepted knowingly (see DECISIONS.md D-07): Postgres-specific SQL must be covered by a
+# manual check against the real DB before the demo.
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  flyway:
+    enabled: false
+  data:
+    redis:
+      host: localhost
+      port: 6379
+logging:
+  level:
+    com.zycus.hackathon: DEBUG
