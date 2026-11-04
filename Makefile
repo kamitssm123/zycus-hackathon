@@ -31,6 +31,12 @@ test: test-api test-web ## Run every test
 test-api: ## Run backend tests in Docker (no local JDK needed)
 	$(COMPOSE) run --rm --no-deps api mvn -B test
 
+test-it: ## Run Testcontainers integration tests (*IT) — needs a Docker socket; CI is the primary path
+	$(COMPOSE) run --rm --no-deps \
+	  -v /var/run/docker.sock:/var/run/docker.sock \
+	  -e TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal \
+	  api mvn -B verify
+
 test-web: ## Run frontend tests
 	cd frontend && npm test
 
@@ -41,4 +47,4 @@ lint: ## Format backend + lint frontend
 health: ## Hit both health endpoints
 	@curl -fsS localhost:8080/api/health && echo "" && curl -fsS localhost:8080/actuator/health && echo ""
 
-.PHONY: help up down reset logs api-logs prod psql test test-api test-web lint health
+.PHONY: help up down reset logs api-logs prod psql test test-api test-it test-web lint health

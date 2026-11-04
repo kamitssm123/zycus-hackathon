@@ -1,0 +1,16 @@
+# Integration-test profile: real Postgres via Testcontainers, real migrations, and the same
+# ddl-auto the application runs in production. This is the only place the schema contract is
+# actually exercised — the H2 suite generates its schema from the entities and so cannot
+# detect entity/migration drift.
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+  datasource:
+    hikari:
+      maximum-pool-size: 5   # must be >= 2 or concurrent-accept threads serialise on the pool
+logging:
+  level:
+    com.slotmind: DEBUG
