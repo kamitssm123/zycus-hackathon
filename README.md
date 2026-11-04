@@ -1,8 +1,70 @@
-# Hackathon Starter — Spring Boot + React + Docker
+# SlotMind — AI Appointment Re-Scheduling Engine
 
-Generic plumbing for a 3-hour build. No problem-specific logic: swap in the real feature and go.
+When a provider goes OFFLINE or a slot is CANCELLED, SlotMind finds every affected appointment by
+itself, asks an LLM for the best rebooking, and queues a suggestion for the front desk. A human
+confirms with the patient; the system never books silently.
 
-**Docs:** [ARCHITECTURE.md](ARCHITECTURE.md) · [DECISIONS.md](DECISIONS.md) · [CLAUDE.md](CLAUDE.md)
+**Docs:** [**ADR.md**](ADR.md) · [ARCHITECTURE.md](ARCHITECTURE.md) · [DECISIONS.md](DECISIONS.md) · [CLAUDE.md](CLAUDE.md)
+
+## The demo, in one command and one click
+
+```bash
+cp .env.example .env     # add LLM_API_KEY
+make up
+```
+
+Then, at <http://localhost:5173>:
+
+1. **Take Dr. Sarah Chen offline.** One click. That is the only human action.
+2. **Watch.** Within a second, two suggestions appear — for John Martinez and Emily Watson — with
+   the AI's reasoning written to be read aloud to a patient. Nobody clicked anything.
+3. **Accept one.** The appointment moves, the old slot reopens and the new one books, atomically.
+
+Or entirely from the terminal:
+
+```bash
+curl -X PATCH localhost:8080/api/providers/PRV-001/status \
+     -H 'Content-Type: application/json' -d '{"status":"OFFLINE"}'   # returns immediately
+sleep 2
+curl 'localhost:8080/api/suggestions?status=PENDING'                 # 2 suggestions, unprompted
+curl -X PATCH localhost:8080/api/suggestions/SGT-001 \
+     -H 'Content-Type: application/json' -d '{"status":"ACCEPTED"}'
+curl localhost:8080/api/slots                                        # old OPEN, new BOOKED
+```
+
+> If another project on your machine is using port 5173, set `WEB_DEV_PORT` in `.env`.
+
+## Endpoints
+
+| | |
+|---|---|
+| `POST /api/appointments` | book onto an open slot |
+| `GET /api/appointments?status=` | filterable list |
+| `PATCH /api/providers/{id}/status` | **OFFLINE fires the agentic loop** |
+| `PATCH /api/slots/{id}/status` | **CANCELLED fires the agentic loop** |
+| `POST /api/appointments/{id}/suggest?strategy=` | on-demand suggestion |
+| `GET /api/suggestions?status=` | the front-desk queue |
+| `PATCH /api/suggestions/{id}` | accept / reject — the human checkpoint |
+| `GET` `PATCH /api/admin/scheduling` | switch `rule` ⇄ `ai` at runtime, no restart |
+
+## How it works
+
+```
+PATCH /providers/PRV-001/status {OFFLINE}
+  → ProviderService publishes a fact and returns (HTTP 200 in ~40ms)
+  → RescheduleAgent, @Async @TransactionalEventListener(AFTER_COMMIT)
+      resolve affected appointments   (offline → N, cancelled → 1)
+      skip any with a PENDING suggestion for the same trigger
+      SchedulingEngine → strategy (ai | rule) → validate against real slots
+      persist PENDING suggestion, appointment → RESCHEDULE_PENDING
+      STOP — the agent cannot book
+  → coordinator calls the patient, clicks Accept
+  → one transaction: lock, re-read, swap both slots, move the appointment
+```
+
+The AI is one strategy behind an interface. If the gateway is slow, down, or hallucinates a slot
+that does not exist, the engine validates the output, drops what is invalid, and falls back to the
+rule-based strategy — `fallbackUsed` is surfaced to the UI rather than hidden.
 
 ---
 
@@ -31,6 +93,8 @@ make logs     # tail everything
 make reset    # wipe the database volume and start clean
 make prod     # production-shaped stack: nginx on :3000
 ```
+
+## Original scaffold docs
 
 ## Layout
 

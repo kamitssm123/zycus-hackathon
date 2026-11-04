@@ -200,3 +200,52 @@ running on every push and PR.
 process. It also catches the "works locally, missing from the commit" class of error before the demo.
 
 **Cost.** None locally. Jobs run in ~2 minutes.
+
+---
+
+### D-14 — Testcontainers added for the concurrency and schema tests
+
+**Decision.** `*Test` runs on H2 under surefire; `*IT` runs on real Postgres via Testcontainers
+under failsafe. CI runs both.
+
+**Why.** D-07 named its own reversal trigger: *"reverse if we write a native Postgres query."*
+`SELECT … FOR UPDATE` and two partial unique indexes are exactly that, and neither exists in H2 —
+so the double-booking backstop would otherwise be untested infrastructure. `SchemaMigrationIT` also
+closes a real hole: production runs `ddl-auto=validate` against a Flyway schema while tests generate
+theirs from the entities, so nothing else checks the two agree.
+
+**Cost.** ~40s on the CI backend job. The local inner loop is unchanged at ~10s.
+
+**Honest limitation.** The ITs **cannot run on this machine**: all backend tests execute in a Maven
+container with no usable Docker socket (bind-mounting it, at either macOS path, still fails).
+CI is the oracle. The *behaviour* they assert was verified locally a different way — 13 genuinely
+concurrent HTTP accepts against the running stack.
+
+---
+
+### D-15 — Demo seed and test fixtures are separate on purpose
+
+**Decision.** `V2__seed.sql` exists for `make up` and the walkthrough. Tests never run it; they build
+fixtures through `TestFixtures`.
+
+**Why.** The test profile disables Flyway because H2 cannot express the partial unique indexes the
+schema depends on. Given that, hand-writing `@Sql` against a Hibernate-generated schema would mean
+maintaining SQL for a schema we never see — worst of both worlds. Type-safe builders make an entity
+rename a compile error instead of a 3am runtime surprise.
+
+**Cost.** Two sources of truth for example data. Mitigated by `SchemaMigrationIT`, which asserts the
+seed against real Postgres, including the demo precondition that PRV-001 holds exactly two confirmed
+appointments.
+
+---
+
+### D-16 — The engine does not offer one slot to two patients
+
+**Decision.** `SchedulingEngine` excludes slots already named by a PENDING suggestion.
+
+**Why.** Found by running the demo, not by review: the first working fan-out offered both patients
+the same slot. The accept transaction kept the data correct — but one coordinator would have phoned
+a patient, agreed a time, and hit a 409. Correct data, bad product.
+
+**Cost.** One extra query per suggestion. A slot held by an un-actioned suggestion is unavailable to
+others until that suggestion is rejected; with a rejection flow in place, that is the right default.
