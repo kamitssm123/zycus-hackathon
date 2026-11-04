@@ -34,6 +34,13 @@ app:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
 
+  scheduling:
+    strategy: ${SCHEDULING_STRATEGY:rule}      # runtime-switchable via PATCH /api/admin/scheduling
+    fallback-strategy: rule
+    horizon-days: ${SCHEDULING_HORIZON_DAYS:14}
+    max-candidates: ${SCHEDULING_MAX_CANDIDATES:50}
+    max-suggestions: ${SCHEDULING_MAX_SUGGESTIONS:3}
+
 management:
   endpoints:
     web:

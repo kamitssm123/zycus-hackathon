@@ -13,19 +13,19 @@ INSERT INTO providers (id, name, specialty, status) VALUES
  ('PRV-005', 'Dr. Ananya Iyer',    'SPECIALIST', 'BUSY');
 
 INSERT INTO slots (id, provider_id, start_time, duration_minutes, status) VALUES
- ('SLT-001', 'PRV-001', NOW() + INTERVAL  '60 minutes', 30, 'BOOKED'),
- ('SLT-002', 'PRV-001', NOW() + INTERVAL '120 minutes', 30, 'BOOKED'),
- ('SLT-003', 'PRV-003', NOW() + INTERVAL  '90 minutes', 45, 'BOOKED'),
- ('SLT-004', 'PRV-002', NOW() + INTERVAL '180 minutes', 30, 'OPEN'),
- ('SLT-005', 'PRV-004', NOW() + INTERVAL '150 minutes', 30, 'OPEN'),
- ('SLT-006', 'PRV-005', NOW() + INTERVAL '240 minutes', 60, 'BOOKED'),
+ ('SLT-001', 'PRV-001', date_trunc('hour', NOW()) + INTERVAL  '60 minutes', 30, 'BOOKED'),
+ ('SLT-002', 'PRV-001', date_trunc('hour', NOW()) + INTERVAL '120 minutes', 30, 'BOOKED'),
+ ('SLT-003', 'PRV-003', date_trunc('hour', NOW()) + INTERVAL  '90 minutes', 45, 'BOOKED'),
+ ('SLT-004', 'PRV-002', date_trunc('hour', NOW()) + INTERVAL '180 minutes', 30, 'OPEN'),
+ ('SLT-005', 'PRV-004', date_trunc('hour', NOW()) + INTERVAL '150 minutes', 30, 'OPEN'),
+ ('SLT-006', 'PRV-005', date_trunc('hour', NOW()) + INTERVAL '240 minutes', 60, 'BOOKED'),
  -- Added beyond Addendum A: taking PRV-001 offline affects two appointments, and
  -- a one-open-GENERAL-slot clinic makes the second suggestion trivially empty.
  -- These give the engine a real choice to reason about.
- ('SLT-007', 'PRV-004', NOW() + INTERVAL '210 minutes', 30, 'OPEN'),
- ('SLT-008', 'PRV-004', NOW() + INTERVAL '270 minutes', 30, 'OPEN'),
- ('SLT-009', 'PRV-002', NOW() + INTERVAL '300 minutes', 30, 'OPEN'),
- ('SLT-010', 'PRV-003', NOW() + INTERVAL '330 minutes', 45, 'OPEN');
+ ('SLT-007', 'PRV-004', date_trunc('hour', NOW()) + INTERVAL '210 minutes', 30, 'OPEN'),
+ ('SLT-008', 'PRV-004', date_trunc('hour', NOW()) + INTERVAL '270 minutes', 30, 'OPEN'),
+ ('SLT-009', 'PRV-002', date_trunc('hour', NOW()) + INTERVAL '300 minutes', 30, 'OPEN'),
+ ('SLT-010', 'PRV-003', date_trunc('hour', NOW()) + INTERVAL '330 minutes', 45, 'OPEN');
 
 INSERT INTO appointments (id, patient_name, type, provider_id, slot_id, status) VALUES
  ('APT-001', 'John Martinez', 'ROUTINE',   'PRV-001', 'SLT-001', 'CONFIRMED'),
