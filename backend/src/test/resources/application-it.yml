@@ -8,6 +8,7 @@ spring:
       ddl-auto: validate
   flyway:
     enabled: true
+    clean-disabled: false   # SchemaMigrationIT re-runs migrations to assert them in isolation
   datasource:
     hikari:
       maximum-pool-size: 5   # must be >= 2 or concurrent-accept threads serialise on the pool

@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.slotmind.scheduling.domain.*;
 import com.slotmind.support.PostgresIT;
+import org.flywaydb.core.Flyway;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -17,6 +19,22 @@ import org.springframework.beans.factory.annotation.Autowired;
  * up} two hours into the hackathon.
  */
 class SchemaMigrationIT extends PostgresIT {
+
+  @Autowired private Flyway flyway;
+
+  /**
+   * Re-applies the migrations from scratch before each assertion.
+   *
+   * <p>Necessary because every *IT class shares one JVM-wide container, and the concurrency IT
+   * wipes the tables to build its own fixtures — so asserting seed counts against whatever the
+   * previous class left behind is order-dependent and was failing in CI. Re-running clean+migrate
+   * is also semantically right: this is a test ABOUT migrations, so running them is the test.
+   */
+  @BeforeEach
+  void reapplyMigrations() {
+    flyway.clean();
+    flyway.migrate();
+  }
 
   @Autowired private ProviderRepository providers;
   @Autowired private SlotRepository slots;
