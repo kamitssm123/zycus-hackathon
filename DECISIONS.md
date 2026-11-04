@@ -309,3 +309,27 @@ exclusion to expire.
 null alternative rather than an error — the rejection did not fail. The UI says so explicitly,
 because a card silently vanishing gives the coordinator no way to tell whether the system is still
 working on it.
+
+---
+
+### D-19 — The agent resolves LIVE appointments, not just CONFIRMED ones
+
+**Decision.** `AffectedAppointmentResolver` matches every appointment for the provider whose status
+is not `COMPLETED`, rather than only `CONFIRMED`.
+
+**The bug it fixes.** A patient moved ONTO a provider by an accepted suggestion sits in
+`RESCHEDULED`, holding a real booked slot. When that provider then went offline, the agent logged
+`affects 0 appointment(s)` and the patient was silently stranded on a slot with an absent doctor —
+the worst possible failure for this system, because it looks like success.
+
+**Why it was missed.** The state machine already permitted `RESCHEDULED -> RESCHEDULE_PENDING`, with
+the comment "a rescheduled appointment can be disrupted again before it is seen". The domain model
+anticipated the case; the query forgot it. No test covered a *second* disruption because every test
+started from seed data where nothing had been rescheduled yet.
+
+**Why `status <> COMPLETED`** rather than an explicit list: it matches the `uq_appointments_live_slot`
+index, so "live appointment" means one thing across the schema and the agent. Appointments already
+awaiting a decision are filtered downstream by the per-trigger dedupe guard, not here.
+
+**Cost.** A provider going offline now fans out over slightly more appointments. Bounded by the
+existing fan-out cap.

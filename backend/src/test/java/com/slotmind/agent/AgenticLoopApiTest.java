@@ -165,6 +165,58 @@ class AgenticLoopApiTest {
   }
 
   @Test
+  void aPatientMovedOntoAProviderIsRescheduledAgainWhenThatProviderGoesOffline() throws Exception {
+    // The full real-world sequence: Chen goes offline, John is moved to Verma, then Verma goes
+    // offline too. John must not be silently stranded on a booked slot with an absent doctor.
+    mockMvc
+        .perform(
+            patch("/api/providers/PRV-001/status")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body("OFFLINE")))
+        .andExpect(status().isOk());
+    TestFixtures.awaitUntil(
+        "first round", () -> suggestions.countByStatus(SuggestionStatus.PENDING) == 2);
+
+    String forJohn = suggestions.findByAppointmentIdOrderByCreatedAtDesc("APT-001").get(0).getId();
+    mockMvc
+        .perform(
+            patch("/api/suggestions/" + forJohn)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body("ACCEPTED")))
+        .andExpect(status().isOk());
+
+    Appointment moved = appointments.findById("APT-001").orElseThrow();
+    Assertions.assertThat(moved.getStatus()).isEqualTo(AppointmentStatus.RESCHEDULED);
+    Assertions.assertThat(moved.getProviderId()).isEqualTo("PRV-004");
+
+    // A third doctor with a free slot, so there is somewhere left to move him to. Without this
+    // the engine correctly finds no candidates and the test would fail for an unrelated reason.
+    var thirdDoctor = fx.provider("PRV-009", Specialty.GENERAL, ProviderStatus.AVAILABLE);
+    fx.openSlot("SLT-099", thirdDoctor, 300);
+
+    // Now the provider he was moved TO goes offline.
+    mockMvc
+        .perform(
+            patch("/api/providers/PRV-004/status")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body("OFFLINE")))
+        .andExpect(status().isOk());
+
+    TestFixtures.awaitUntil(
+        "John to be picked up again",
+        () ->
+            appointments.findById("APT-001").orElseThrow().getStatus()
+                == AppointmentStatus.RESCHEDULE_PENDING);
+
+    Assertions.assertThat(suggestions.findByAppointmentIdOrderByCreatedAtDesc("APT-001"))
+        .anySatisfy(
+            s -> {
+              Assertions.assertThat(s.isPending()).isTrue();
+              Assertions.assertThat(s.getRecommendedSlotId()).isEqualTo("SLT-099");
+            });
+  }
+
+  @Test
   void cancellingASlotCreatesOneSuggestionWithTheSlotCancelledTrigger() throws Exception {
     mockMvc
         .perform(

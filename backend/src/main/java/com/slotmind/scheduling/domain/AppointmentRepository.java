@@ -19,8 +19,18 @@ public interface AppointmentRepository extends JpaRepository<Appointment, String
 
   List<Appointment> findAllByOrderByIdAsc();
 
-  /** The agentic loop's 1-to-N resolver: every live appointment owned by a provider. */
   List<Appointment> findByProviderIdAndStatusOrderByIdAsc(
+      String providerId, AppointmentStatus status);
+
+  /**
+   * The agentic loop's 1-to-N resolver: every LIVE appointment owned by a provider.
+   *
+   * <p>"Live" is status &lt;&gt; COMPLETED, matching the uq_appointments_live_slot index. It must
+   * include RESCHEDULED appointments: a patient moved to this provider once still holds a real
+   * booked slot with them, and if the provider then goes offline that patient needs moving again.
+   * Filtering to CONFIRMED only left them silently stranded.
+   */
+  List<Appointment> findByProviderIdAndStatusNotOrderByIdAsc(
       String providerId, AppointmentStatus status);
 
   /** The agentic loop's 1-to-1 resolver. */

@@ -49,8 +49,13 @@ public class AffectedAppointmentResolver {
   }
 
   private List<String> byProvider(String providerId) {
+    // Every live appointment, not just CONFIRMED ones. A patient already rescheduled ONTO this
+    // provider holds a real booked slot with them; if the provider then goes offline that patient
+    // must be moved again. The state machine always allowed RESCHEDULED -> RESCHEDULE_PENDING —
+    // this query was the thing that forgot. Appointments already awaiting a decision are filtered
+    // out downstream by the per-trigger dedupe guard, not here.
     return appointments
-        .findByProviderIdAndStatusOrderByIdAsc(providerId, AppointmentStatus.CONFIRMED)
+        .findByProviderIdAndStatusNotOrderByIdAsc(providerId, AppointmentStatus.COMPLETED)
         .stream()
         .map(Appointment::getId)
         .toList();

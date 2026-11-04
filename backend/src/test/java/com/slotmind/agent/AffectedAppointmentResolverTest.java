@@ -41,8 +41,9 @@ class AffectedAppointmentResolverTest {
   }
 
   @Test
-  void providerOfflineResolvesEveryConfirmedAppointmentForThatProvider() {
-    when(appointments.findByProviderIdAndStatusOrderByIdAsc("PRV-001", AppointmentStatus.CONFIRMED))
+  void providerOfflineResolvesEveryLiveAppointmentForThatProvider() {
+    when(appointments.findByProviderIdAndStatusNotOrderByIdAsc(
+            "PRV-001", AppointmentStatus.COMPLETED))
         .thenReturn(List.of(appointment("APT-001"), appointment("APT-002")));
 
     assertThat(resolver.resolve(RescheduleTriggered.providerOffline("PRV-001")))
@@ -50,12 +51,26 @@ class AffectedAppointmentResolverTest {
   }
 
   @Test
-  void providerOfflineIgnoresAppointmentsThatAreNotConfirmed() {
-    // Completed and already-rescheduled appointments are not disrupted by the provider leaving.
+  void providerOfflineIncludesPatientsAlreadyRescheduledOntoThatProvider() {
+    // The bug this guards: filtering to CONFIRMED left a patient who had been moved ONTO this
+    // provider invisible to the agent. They hold a real booked slot and must be moved again.
+    Appointment movedHere = appointment("APT-001");
+    movedHere.setStatus(AppointmentStatus.RESCHEDULED);
+    when(appointments.findByProviderIdAndStatusNotOrderByIdAsc(
+            "PRV-001", AppointmentStatus.COMPLETED))
+        .thenReturn(List.of(movedHere));
+
+    assertThat(resolver.resolve(RescheduleTriggered.providerOffline("PRV-001")))
+        .containsExactly("APT-001");
+  }
+
+  @Test
+  void providerOfflineExcludesCompletedAppointments() {
+    // A visit that already happened is not disrupted by the provider leaving.
     resolver.resolve(RescheduleTriggered.providerOffline("PRV-001"));
 
     verify(appointments)
-        .findByProviderIdAndStatusOrderByIdAsc("PRV-001", AppointmentStatus.CONFIRMED);
+        .findByProviderIdAndStatusNotOrderByIdAsc("PRV-001", AppointmentStatus.COMPLETED);
     verify(appointments, never()).findAllByOrderByIdAsc();
   }
 
@@ -80,7 +95,8 @@ class AffectedAppointmentResolverTest {
   void fanOutIsCappedSoABusyProviderCannotStallTheDemo() {
     List<Appointment> many =
         IntStream.rangeClosed(1, 25).mapToObj(i -> appointment("APT-%03d".formatted(i))).toList();
-    when(appointments.findByProviderIdAndStatusOrderByIdAsc("PRV-001", AppointmentStatus.CONFIRMED))
+    when(appointments.findByProviderIdAndStatusNotOrderByIdAsc(
+            "PRV-001", AppointmentStatus.COMPLETED))
         .thenReturn(many);
     properties.setMaxFanOut(10);
 
